@@ -1,3 +1,4 @@
+import type { RawCourseData } from "@/types/api";
 import { api } from "../lib/api";
 import type {
   Course,
@@ -10,14 +11,14 @@ import type {
 
 export const courseService = {
   async getAll(): Promise<Course[]> {
-    const response = await api.get<any[]>("/course");
+    const response = await api.get<RawCourseData[]>("/course");
     return response.data.map((item) => ({
       id: item.course_id,
       title: item.title,
       description: item.description,
-      videoUrl: item.video_url,
+      videoUrl: item.video_url ?? undefined,
       duration: undefined,
-      level: item.level,
+      level: item.level as CourseLevel,
       instrumentId: item.instrument_id,
       createdAt: item.publication_date,
       updatedAt: item.publication_date,
@@ -50,14 +51,14 @@ export const courseService = {
 
   async getByInstrument(instrumentId: number): Promise<Course[]> {
     const response = await api.get<Course[]>(
-      `/course/instrument/${instrumentId}`,
+      `/course/instrument/${instrumentId}`
     );
     return response.data;
   },
 
   async getEnrollments(courseId: number): Promise<Enrollment[]> {
     const response = await api.get<Enrollment[]>(
-      `/enrollment/course/${courseId}`,
+      `/enrollment/course/${courseId}`
     );
     return response.data;
   },
