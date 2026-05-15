@@ -7,8 +7,6 @@ import { Play, Calendar, TrendingUp, Clock, Bell, ChevronRight } from "lucide-re
 import { Link } from "react-router-dom";
 import DashboardLayout from "./DashboardLayout";
 import { studentService } from "@/services/studentService";
-import { scheduleService } from "@/services/scheduleService";
-import { progressService } from "@/services/progressService";
 import { courseService } from "@/services/courseService";
 import { authService } from "@/services/authService";
 import type { Student, Schedule, Progress as ProgressType, Course } from "@/types";
@@ -33,16 +31,16 @@ const Dashboard = () => {
         return;
       }
 
-      // Load student data
-      const studentData = await studentService.getById(1); // TODO: Get actual student ID from token
+      // Load student data - Using ID 1 for demo, should get from token
+      const studentData = await studentService.getById(1);
       setStudent(studentData);
 
       // Load schedules
-      const schedulesData = await scheduleService.getStudentSchedules(studentData.id);
+      const schedulesData = await studentService.getSchedules(studentData.student_id);
       setSchedules(schedulesData);
 
       // Load progress
-      const progressData = await progressService.getStudentProgress(studentData.id);
+      const progressData = await studentService.getProgress(studentData.student_id);
       setProgress(progressData);
 
       // Load courses
@@ -70,10 +68,14 @@ const Dashboard = () => {
     );
   }
 
-  const totalLessons = courses.length;
+  const enrolledCourses = courses.filter(course => 
+    student?.enrollments?.some(enrollment => enrollment.courseId === course.id)
+  );
+  const totalLessons = enrolledCourses.length;
   const completedLessons = progress.filter(p => p.completionPercentage === 100).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
   const weeklySchedules = schedules.filter(s => s.isActive).length;
+  const practiceTime = Math.round(progress.reduce((acc, p) => acc + (p.completionPercentage * 0.5), 0)); // Estimation
 
   return (
     <DashboardLayout>
@@ -82,7 +84,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="font-serif text-3xl font-bold text-charcoal">
-              Bonjour, {student?.firstName || 'Élève'} ! 👋
+              Bonjour, {student?.first_name || 'Élève'} ! 👋
             </h1>
             <p className="text-muted-foreground">
               Prêt à continuer votre apprentissage musical ?
@@ -119,7 +121,7 @@ const Dashboard = () => {
                   <Clock className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{Math.round(progress.reduce((acc, p) => acc + p.completionPercentage, 0) / Math.max(progress.length, 1))}h</p>
+                  <p className="text-2xl font-bold">{practiceTime}h</p>
                   <p className="text-sm text-muted-foreground">Temps de pratique</p>
                 </div>
               </div>
@@ -199,7 +201,7 @@ const Dashboard = () => {
                   key={schedule.id}
                   className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                 >
-                  <p className="font-medium text-sm">Cours de musique</p>
+                  <p className="font-medium text-sm">Cours de {student?.instrument?.name || 'musique'}</p>
                   <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                     <Badge variant="secondary" className="text-xs">
                       {schedule.dayOfWeek}
@@ -240,7 +242,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.slice(0, 6).map((course) => {
+              {enrolledCourses.slice(0, 6).map((course) => {
                 const courseProgress = progress.find(p => p.courseId === course.id);
                 const isCompleted = courseProgress?.completionPercentage === 100;
                 
