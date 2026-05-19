@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Play, Music, Users, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
